@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AUC 加固检测工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ffa726 0%, #ff9800 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2d3748, #4a5568);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .upload-section {
+            background: white;
+            border: 2px dashed #cccccc;
+            border-radius: 8px;
+            padding: 60px 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .upload-section:hover {
+            border-color: #ff9800;
+            background: #fafafa;
+        }
+
+        .upload-section.dragover {
+            border-color: #ff9800;
+            background: #fafafa;
+        }
+
+        .upload-icon {
+            color: #ff9800;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .upload-icon svg {
+            width: 64px;
+            height: 64px;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            color: #555555;
+            margin-bottom: 0;
+            line-height: 1.5;
+        }
+
+        .upload-hint {
+            color: #555555;
+            font-size: 0.9rem;
+            margin-top: 15px;
+            text-align: center;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .upload-clickable {
+            color: #ff9800;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .results-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #48bb78;
+        }
+
+        .result-card.detected {
+            border-left-color: #f56565;
+            background: linear-gradient(135deg, #fed7d7, #fbb6ce);
+        }
+
+        .result-card.clean {
+            border-left-color: #48bb78;
+            background: linear-gradient(135deg, #c6f6d5, #9ae6b4);
+        }
+
+        .result-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+
+        .protection-item {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #f56565;
+        }
+
+        .protection-name {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .evidence-list {
+            list-style: none;
+            padding-left: 15px;
+        }
+
+        .evidence-list li {
+            color: #718096;
+            margin: 3px 0;
+            position: relative;
+        }
+
+        .evidence-list li:before {
+            content: "•";
+            color: #f56565;
+            font-weight: bold;
+            position: absolute;
+            left: -12px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .status-text {
+            text-align: center;
+            color: #718096;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            word-break: break-all;
+            line-height: 1.2;
+        }
+
+        .package-name-card {
+            grid-column: span 2;
+        }
+
+        .package-name-card .stat-number {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #667eea;
+            word-break: break-all;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .version-card {
+            background: white;
+        }
+
+        .version-card .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .version-card .stat-label {
+            color: #718096;
+        }
+
+        .app-name-card {
+            background: white;
+        }
+
+        .app-name-card .stat-number {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #667eea;
+            word-break: break-all;
+            line-height: 1.2;
+        }
+
+        .app-name-card .stat-label {
+            color: #718096;
+        }
+
+        .info-section {
+            margin: 15px 0;
+        }
+
+        .info-section h4 {
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .info-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f7fafc;
+        }
+
+        .info-item {
+            padding: 5px 8px;
+            margin: 2px 0;
+            background: white;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #4a5568;
+            word-break: break-all;
+        }
+
+        .info-item.more {
+            background: #edf2f7;
+            color: #718096;
+            font-style: italic;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .info-item.more:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.02);
+        }
+
+        .activities-header {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 10px;
+            padding: 8px 12px;
+            background: #f7fafc;
+            border-bottom: 2px solid #e2e8f0;
+            font-weight: bold;
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+
+        .activity-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 10px;
+            padding: 6px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background-color 0.2s ease;
+        }
+
+        .activity-row:hover {
+            background-color: #f8fafc;
+        }
+
+        .activity-label {
+            font-weight: 500;
+            color: #667eea;
+            word-break: break-word;
+        }
+
+        .activity-name {
+            color: #4a5568;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .protection-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            margin: 15px 0;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .protection-header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .protection-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .protection-count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .evidence-list {
+            padding: 15px 20px;
+        }
+
+        .evidence-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .evidence-item:last-child {
+            border-bottom: none;
+        }
+
+        .evidence-icon {
+            margin-right: 10px;
+            font-size: 1rem;
+        }
+
+        .evidence-text {
+            color: #4a5568;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .analyzing {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #fed7d7, #fbb6ce);
+            border: 1px solid #f56565;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #c53030;
+            text-align: center;
+            display: none;
+        }
+
+
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #2d3748;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1> AUC 加固检测工具</h1>
+        </div>
+
+        <div class="main-content">
+            <div class="upload-section" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">
+                    <svg width="64" height="64" viewBox="0 0 1024 1024" fill="currentColor">
+                        <path d="M544 864V672h128L512 480 352 672h128v192H320v-1.6c-5.376.32-10.496 1.6-16 1.6A240 240 0 0 1 64 624c0-123.136 93.12-223.488 212.608-237.248A239.81 239.81 0 0 1 512 192a239.87 239.87 0 0 1 235.456 194.752c119.488 13.76 212.48 114.112 212.48 237.248a240 240 0 0 1-240 240c-5.376 0-10.56-1.28-16-1.6v1.6z"></path>
+                    </svg>
+                </div>
+                <div class="upload-text">
+                    将APK文件拖到此处，或<span class="upload-clickable">点击上传</span>
+                </div>
+                <input type="file" id="fileInput" class="file-input" accept=".apk,.xapk" onchange="handleFileSelect(event)">
+            </div>
+            <div class="upload-hint">
+                支持Ctrl+V粘贴文件<br>
+                支持APK/XAPK格式，最大支持上传100MB
+            </div>
+
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="status-text" id="statusText">正在分析APK文件...</div>
+
+            <div class="error-message" id="errorMessage"></div>
+
+
+            <div class="results-section" id="resultsSection">
+                <div class="stats-grid" id="statsGrid"></div>
+                <div id="detectionResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/app-info-parser@1.1.6/dist/app-info-parser.min.js"></script>
+    <script>
+        // 加固特征数据
+        const protectionSignatures = {
+            "360加固": {
+                sopath: ["assets/libjiagu.so"],
+                soname: ["libjiagu.so", "libjgdtc.so", "libjgdtc_a64.so", "libjgdtc_art.so", "libjgdtc_x64.so", "libjgdtc_x86.so", "libjiagu.so", "libjiagu_a64.so", "libjiagu_art.so", "libjiagu_ls.so", "libjiagu_x64.so", "libjiagu_x86.so", "libprotectClass.so", "libSafeManageService.so"],
+                other: ["assets/.appkey", "assets/.jgapp"],
+                soregex: ["libjiagu\\_...\\.so", "libjgdtc\\_...\\.so"]
+            },
+            "APKProtect": {
+                soname: ["libAPKProtect.so"]
+            },
+            "apktoolplus": {
+                sopath: ["lib/armeabi/libapktoolplus_jiagu.so"],
+                soname: ["libapktoolplus_jiagu.so"],
+                other: ["assets/jiagu_data.bin", "assets/sign.bin"]
+            },
+            "CFCA加固": {
+                soname: ["libbasec.so", "libbasec_x86.so", "libsecenh.so", "libsecenh_a64.so", "libsecenh_x86.so"],
+                other: ["my_classes.jar"]
+            },
+            "DexProtect加固": {
+                other: ["assets/classes.dex.dat", "dp.arm-v7.so.dat", "dp.arm.so.dat"]
+            },
+            "OPPO应用加固": {
+                soname: ["OPPOProtect.so", "OPPOProtect2019.so"],
+                soregex: ["OPPOProtect\\d\\d\\d\\d\\.so"]
+            },
+            "OPPO安全检测SDK": {
+                sopath: ["jni/arm64-v8a/libomesStdSco.so", "jni/armeabi-v7a/libomesStdSco.so", "jni/x86/libomesStdSco.so", "jni/x86_64/libomesStdSco.so"],
+                soname: ["libomesStdSco.so"]
+            },
+            "UU安全加固": {
+                sopath: ["assets/libuusafe.jar.so", "assets/libuusafe.so", "lib/armeabi/libuusafeempty.so"],
+                soname: ["libuusafe.jar.so", "libuusafe.so", "libuusafeempty.so"]
+            },
+            "中国移动加固": {
+                sopath: ["lib/armeabi/libcmvmp.so", "lib/armeabi/libmogosec_dex.so", "lib/armeabi/libmogosec_sodecrypt.so", "lib/armeabi/libmogosecurity.so"],
+                soname: ["libcmvmp.so", "libmogosec_dex.so", "libmogosec_sodecrypt.so", "libmogosecurity.so", "ibmogosecurity.so"],
+                other: ["assets/mogosec_classes", "assets/mogosec_data", "assets/mogosec_dexinfo", "assets/mogosec_march"]
+            },
+            "几维安全": {
+                sopath: ["lib/armeabi/kdpdata.so", "lib/armeabi/libkdp.so", "lib/armeabi/libkwscmm.so"],
+                soname: ["kdpdata.so", "libkdp.so", "libkwscmm.so", "libkwscr.so", "libkwslinker.so"],
+                other: ["assets/dex.dat"]
+            },
+            "启明星辰": {
+                soname: ["libvenSec.so", "libvenustech.so"]
+            },
+            "娜迦加固": {
+                soname: ["libchaosvmp.so", "libddog.so", "libfdog.so", "libhdog.so"],
+                soregex: ["lib.dog\\.so"]
+            },
+            "娜迦加固（企业版）": {
+                soname: ["libedog.so"]
+            },
+            "娜迦加固（开发者试用版-VMP）": {
+                soname: ["libvdog-x86.so", "libvdog.so"],
+                soregex: ["libvdog\\-...\\.so"]
+            },
+            "娜迦加固（新版2022）": {
+                sopath: ["lib/armeabi/libxloader.so", "lib/armeabi-v7a/libxloader.so", "lib/arm64-v8a/libxloader.so"],
+                soname: ["libxloader.so"],
+                other: ["assets/maindata/fake_classes.dex"]
+            },
+            "梆梆安全（企业版）": {
+                soname: ["libDexHelper-x86.so", "libDexHelper.so"],
+                soregex: ["libDexHelper\\-...\\.so"]
+            },
+            "梆梆安全（免费版）": {
+                sopath: ["lib/armeabi/libSecShell-x86.so", "lib/armeabi/libSecShell.so"],
+                soname: ["libSecShell_art.so", "libSecShell.so", "libSecShel1.so", "libsecexe.so", "libsecmain.so"],
+                other: ["assets/secData0.jar"]
+            },
+            "梆梆安全（定制版）": {
+                sopath: ["lib/armeabi/DexHelper.so"],
+                soname: ["DexHelper.so"],
+                other: ["assets/classes.jar"]
+            },
+            "海云安加固": {
+                sopath: ["lib/armeabi/libitsec.so"],
+                soname: ["libitsec.so"],
+                other: ["assets/itse"]
+            },
+            "深盾安全加固（Virbox Protector）": {
+                soname: ["ibvirbox32.so", "libvirbox64.so"],
+                soregex: ["libvirbox..\\.so"]
+            },
+            "爱加密": {
+                sopath: ["assets/ijm_lib/armeabi/libexec.so", "assets/ijm_lib/X86/libexec.so", "lib/armeabi/libexecmain.so"],
+                soname: ["libexecmain.so", "libexec.so"],
+                other: ["assets/af.bin", "assets/signed.bin", "ijiami.dat"]
+            },
+            "爱加密3代壳": {
+                soname: ["libexecv3.so"],
+                other: ["assets/ijiami3.ajm"]
+            },
+            "爱加密5代壳": {
+                sopath: ["assets/libijmDataEncryption.so"],
+                soname: ["libijmDataEncryption.so"],
+                other: ["assets/IJMDal.Data"]
+            },
+            "爱加密企业版": {
+                other: ["assets/ijiami.ajm"]
+            },
+            "珊瑚灵御": {
+                sopath: ["assets/libreincp.so", "assets/libreincp_x86.so"],
+                soname: ["libreincp.so", "libreincp_x86.so"],
+                soregex: ["libreincp\\_...\\.so"]
+            },
+            "瑞星加固": {
+                soname: ["librsprotect.so"]
+            },
+            "百度加固": {
+                sopath: ["lib/armeabi/libbaiduprotect.so"],
+                soname: ["libbaiduprotect.so", "libbaiduprotect_art.so", "libbaiduprotect_x86.so"],
+                other: ["assets/baiduprotect.jar", "assets/baiduprotect1.jar"]
+            },
+            "盛大加固": {
+                soname: ["libapssec.so"]
+            },
+            "网易易盾": {
+                soname: ["libnesec.so"]
+            },
+            "网秦加固（国信灵通）": {
+                soname: ["libnqshield.so"]
+            },
+            "腾讯Bugly": {
+                sopath: ["lib/arm64-v8a/libBugly.so"],
+                soname: ["libBugly.so"]
+            },
+            "腾讯乐固（VMP）": {
+                sopath: ["lib/arm64-v8a/libxgVipSecurity.so", "lib/armeabi-v7a/libxgVipSecurity.so"],
+                soname: ["libxgVipSecurity.so"]
+            },
+            "腾讯乐固（日版）": {
+                other: ["libshel1x"]
+            },
+            "腾讯乐固（旧版）": {
+                sopath: ["lib/armeabi/libshella-xxxx.so", "lib/armeabi/libshellx-xxxx.so"],
+                soname: ["liblegudb.so", "libshel1x.so", "libshell.so", "libshella-2.10.2.3.so", "libshella-2.9.0.2.so", "libshella-4.1.0.15.so", "libshella-4.1.0.19.so", "libshella.so", "libshellx.so", "libtup.so"],
+                other: ["lib/armeabi/mix.dex", "lib/armeabi/mixz.dex", "tencent_stub"],
+                soregex: ["libshella\\-\\d+\\.\\d+\\.\\d+\\.\\d+\\.so"]
+            },
+            "腾讯云加固": {
+                sopath: ["assets/libshellx-super.2021.so", "lib/armeabi/libshell-super.2019.so", "lib/armeabi/libshell-super.2020.so", "lib/armeabi/libshell-super.2021.so"],
+                soname: ["libshell-super.2019.so", "libshellx-super.2021.so"],
+                other: ["tencent_sub"],
+                soregex: ["libshellx\\-super\\.\\d+\\.so", "libshell\\-super\\.\\d+\\.so"]
+            },
+            "腾讯云移动应用安全": {
+                other: ["0000000lllll.dex", "00000olllll.dex", "000O00ll111l.dex", "00O000ll111l.dex", "0OO00l111l1l", "o0oooOO0ooOo.dat"]
+            },
+            "腾讯云移动应用安全（腾讯御安全）": {
+                soname: ["libBugly-yaq.so", "libshell-super.2019.so", "libshellx-super.2019.so", "libzBugly-yaq.so"],
+                other: ["000000011111.dex", "000000111111.dex", "000001111111", "00000o11111.dex", "o0ooo000oo0o.dat", "t86", "tosprotection", "tosversion"]
+            },
+            "腾讯加固": {
+                soname: ["libshell.so"]
+            },
+            "腾讯手游加固": {
+                soname: ["libtprt.so"]
+            },
+            "腾讯御安全": {
+                sopath: ["assets/libtosprotection.armeabi-v7a.so", "assets/libtosprotection.armeabi.so", "assets/libtosprotection.x86.so", "lib/armeabi/libtest.so", "lib/armeabi/libTmsdk-xxx-mfr.so"],
+                soname: ["libtosprotection.armeabi-v7a.so", "libtosprotection.armeabi.so", "libtosprotection.x86.so"],
+                other: ["assets/tosversion"],
+                soregex: ["libtosprotection\\..+\\.so"]
+            },
+            "蛮犀加固": {
+                sopath: ["assets/mxsafe/arm64-v8a/libdSafeShell.so", "assets/mxsafe/x86_64/libdSafeShell.so", "assets/mx/lib/arm64-v8a/libmxacc.so", "assets/mx/lib/x86_64/libmxacc.so"],
+                soname: ["libdSafeShell.so", "libmxacc.so"],
+                other: ["assets/mxsafe.config", "assets/mxsafe.data", "assets/mxsafe.jar"]
+            },
+            "通付盾": {
+                soname: ["libNSaferOnly.so", "libegis.so", "libgeiri.so", "libgeiri-x86.so"]
+            },
+            "阿里云加固": {
+                soname: ["libdemolish.so", "libdemolishdata.so"]
+            },
+            "阿里加固": {
+                sopath: ["assets/armeabi/libfakejni.so", "assets/armeabi/libzuma.so", "assets/libpreverify1.so", "assets/libzuma.so", "assets/libzumadata.so"],
+                soname: ["libzuma.so", "libpreverify1.so", "libmobisec.so", "libsgmain.so", "libsgsecuritybody.so", "libfakejni.so"],
+                other: ["aliprotect.dat"]
+            },
+            "阿里聚安全": {
+                sopath: ["assets/armeabi/libfakejni.so", "assets/libpreverify1.so", "assets/libzuma.so", "assets/libzumadata.so"],
+                soname: ["libdemolish.so", "libdemolishdata.so", "libfakejni.so", "libmobisec.so", "libpreverify1.so", "libsgmain.so", "libsgsecuritybody.so", "libzumadata.so"],
+                other: ["aliprotect.dat"]
+            },
+            "顶像科技": {
+                sopath: ["lib/armeabi/libx3g.so"],
+                soname: ["libx3g.so", "libjni.so"]
+            },
+            "google(play)加固": {
+                sopath: ["lib/arm64-v8a/libpairipcore.so", "lib/armeabi-v7a/libpairipcore.so", "lib/x86_64/libpairipcore.so", "lib/x86/libpairipcore.so"],
+                soname: ["libpairipcore.so"]
+            },
+            "LIAPP加固": {
+                other: ["assets/LIAPP.ini", "assets/pkgInfo.txt"],
+                soregex: ["com\\..+UnityDataAssetPack.+\\.apk$", "com\\..+AddressablesAssetPack.+\\.apk$"]
+            },
+            "appguard.us加固": {
+                soname: ["libloader.so"],
+                soregex: ["config\\..+\\.apk$"]
+            },
+            "未知厂商": {
+                soname: ["libapk-protect.so"]
+            }
+        };
+
+        let currentFile = null;
+
+        // 拖拽功能
+        const uploadSection = document.querySelector('.upload-section');
+        
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        // 检查是否为XAPK文件
+        function isXAPKFile(file) {
+            return file.name.toLowerCase().endsWith('.xapk');
+        }
+
+        // 分析XAPK文件
+        async function analyzeXAPKFile(file) {
+            try {
+                const zip = new JSZip();
+                const zipData = await zip.loadAsync(file);
+                
+                updateStatus('正在解析XAPK文件结构...');
+                updateProgress(20);
+                
+                const fileList = Object.keys(zipData.files);
+                console.log('XAPK文件列表:', fileList);
+                console.log('XAPK文件总数:', fileList.length);
+                
+                // 分类显示文件类型
+                const apkFiles = fileList.filter(file => file.endsWith('.apk'));
+                const obbFiles = fileList.filter(file => file.endsWith('.obb'));
+                const otherFiles = fileList.filter(file => !file.endsWith('.apk') && !file.endsWith('.obb'));
+                
+                console.log('APK文件:', apkFiles);
+                console.log('OBB文件:', obbFiles);
+                console.log('其他文件:', otherFiles);
+                
+                // 查找主APK文件
+                const mainAPKFile = fileList.find(file => file.endsWith('.apk') && !file.includes('split'));
+                console.log('找到的主APK文件:', mainAPKFile);
+                
+                if (!mainAPKFile) {
+                    throw new Error('XAPK文件中未找到主APK文件');
+                }
+                
+                updateStatus('正在提取主APK文件...');
+                updateProgress(40);
+                
+                const mainAPKData = await zipData.files[mainAPKFile].async('arraybuffer');
+                const mainAPKBlob = new Blob([mainAPKData], { type: 'application/vnd.android.package-archive' });
+                
+                // 分析主APK文件
+                const mainZipData = await JSZip.loadAsync(mainAPKBlob);
+                updateStatus('正在解析包信息...');
+                updateProgress(60);
+                
+                const mainAPKFileList = Object.keys(mainZipData.files);
+                console.log('主APK文件内容:', mainAPKFileList.slice(0, 20)); // 显示前20个文件
+                console.log('主APK文件总数:', mainAPKFileList.length);
+                
+                const packageInfo = await getPackageInfo(mainZipData);
+                console.log('主APK包信息:', packageInfo);
+                
+                updateStatus('正在检测加固特征...');
+                updateProgress(80);
+                
+                // 检测所有APK文件的加固特征
+                const allAPKFiles = fileList.filter(file => file.endsWith('.apk'));
+                console.log('XAPK中的所有APK文件:', allAPKFiles);
+                console.log('APK文件数量:', allAPKFiles.length);
+                
+                let allDetectedProtections = [];
+                
+                for (let i = 0; i < allAPKFiles.length; i++) {
+                    const apkFile = allAPKFiles[i];
+                    console.log(`正在分析第${i + 1}个APK文件: ${apkFile}`);
+                    
+                    const apkData = await zipData.files[apkFile].async('arraybuffer');
+                    const apkBlob = new Blob([apkData], { type: 'application/vnd.android.package-archive' });
+                    const apkZipData = await JSZip.loadAsync(apkBlob);
+                    const apkFileList = Object.keys(apkZipData.files);
+                    
+                    console.log(`${apkFile} 文件内容:`, apkFileList.slice(0, 10)); // 显示前10个文件
+                    console.log(`${apkFile} 文件总数:`, apkFileList.length);
+                    
+                    const detectedProtections = detectProtections(apkFileList);
+                    console.log(`${apkFile} 检测到的加固:`, detectedProtections);
+                    
+                    allDetectedProtections = allDetectedProtections.concat(detectedProtections);
+                }
+                
+                // 去重
+                console.log('所有检测到的加固方案:', allDetectedProtections);
+                console.log('检测到的加固方案总数:', allDetectedProtections.length);
+                
+                const uniqueProtections = [];
+                const protectionNames = new Set();
+                for (const protection of allDetectedProtections) {
+                    if (!protectionNames.has(protection.name)) {
+                        protectionNames.add(protection.name);
+                        uniqueProtections.push(protection);
+                    }
+                }
+                
+                console.log('去重后的加固方案:', uniqueProtections);
+                console.log('最终加固方案数量:', uniqueProtections.length);
+                console.log('XAPK分析完成！');
+                
+                updateStatus('分析完成！');
+                updateProgress(100);
+                
+                setTimeout(() => {
+                    showProgress(false);
+                    displayResults(uniqueProtections, fileList, packageInfo);
+                }, 500);
+                
+            } catch (error) {
+                console.error('XAPK分析失败:', error);
+                showProgress(false);
+                showError(`XAPK文件分析失败: ${error.message}。请确保文件完整且格式正确。`);
+            }
+        }
+
+        function handleFile(file) {
+            hideError();
+            
+            if (!file.name.toLowerCase().endsWith('.apk') && !file.name.toLowerCase().endsWith('.xapk')) {
+                showError('禁止上传非APK/XAPK文件！不要渗透我！');
+                return;
+            }
+
+            if (file.size > 100 * 1024 * 1024) {
+                showError('文件大小不要超过100MB，我带不动的！');
+                return;
+            }
+
+            currentFile = file;
+            analyzeAPK(file);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            errorDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        // 获取包信息 - 使用app-info-parser库
+        async function getPackageInfo(zipData) {
+            try {
+                console.log('开始使用app-info-parser解析APK包信息...');
+                console.log('AppInfoParser是否可用:', typeof window.AppInfoParser);
+                
+                // 检查库是否加载
+                if (typeof window.AppInfoParser === 'undefined') {
+                    throw new Error('AppInfoParser库未加载');
+                }
+                
+                // 使用app-info-parser解析APK
+                const parser = new window.AppInfoParser(currentFile);
+                const result = await parser.parse();
+                
+                console.log('app-info-parser解析结果:', result);
+                
+                const packageName = result.package || result.packageName || '未知包名';
+                const versionName = result.versionName || result.version || '未知版本';
+                const appName = result.application?.label || result.application?.name || '未知应用';
+                const activities = result.application?.activities || [];
+                const permissions = result.application?.usesPermissions || [];
+                
+                console.log('最终解析结果:', {
+                    package: packageName,
+                    version: versionName,
+                    appName: appName,
+                    activities: activities,
+                    permissions: permissions,
+                    versionCode: result.versionCode
+                });
+                
+                return {
+                    packageName: packageName,
+                    version: versionName,
+                    appName: appName,
+                    activities: activities,
+                    permissions: permissions
+                };
+                
+            } catch (error) {
+                console.warn('app-info-parser解析失败，使用文件名解析作为降级方案:', error);
+                return getPackageInfoFromFileName();
+            }
+        }
+
+
+
+        function getPackageInfoFromFileName() {
+            const fileName = currentFile ? currentFile.name : '';
+            if (fileName) {
+                const nameWithoutExt = fileName.replace('.apk', '');
+                console.log('从文件名解析:', nameWithoutExt);
+                
+                // 简单的版本号提取：尝试匹配 _版本号 或 -版本号
+                const versionMatch = nameWithoutExt.match(/[_-]v?(\d+\.\d+(?:\.\d+)?(?:\.\d+)?(?:-[a-zA-Z0-9]+)?)$/);
+                if (versionMatch) {
+                    const packageName = nameWithoutExt.replace(versionMatch[0], '');
+                    const version = versionMatch[1];
+                    console.log('从文件名解析结果 - 包名:', packageName, '版本:', version);
+                    return {
+                        packageName: packageName,
+                        version: version
+                    };
+                }
+                
+                // 如果没有版本号，直接返回文件名
+                console.log('从文件名解析结果 - 包名:', nameWithoutExt, '版本: 未知');
+                return {
+                    packageName: nameWithoutExt,
+                    version: '未知'
+                };
+            }
+            return {
+                packageName: '未找到包信息',
+                version: '未知'
+            };
+        }
+
+
+
+
+
+        async function analyzeAPK(file) {
+            showProgress(true);
+            
+            if (isXAPKFile(file)) {
+                updateStatus('正在读取XAPK文件...');
+                updateProgress(10);
+                await analyzeXAPKFile(file);
+                return;
+            }
+            
+            updateStatus('正在读取APK文件...');
+            updateProgress(10);
+
+            try {
+                const zip = new JSZip();
+                const zipData = await zip.loadAsync(file);
+                
+                updateStatus('正在分析文件结构...');
+                updateProgress(30);
+
+                const fileList = Object.keys(zipData.files);
+                
+                updateStatus('正在检测加固特征...');
+                updateProgress(60);
+
+                const detectedProtections = detectProtections(fileList);
+                
+                updateStatus('正在解析包信息...');
+                updateProgress(80);
+
+                const packageInfo = await getPackageInfo(zipData);
+                
+                updateStatus('分析完成！');
+                updateProgress(100);
+
+                setTimeout(() => {
+                    showProgress(false);
+                    displayResults(detectedProtections, fileList, packageInfo);
+                }, 500);
+
+            } catch (error) {
+                console.error('分析失败:', error);
+                showProgress(false);
+                showError(`APK文件分析失败: ${error.message}。请确保文件完整且格式正确。`);
+            }
+        }
+
+        function detectProtections(fileList) {
+            const detected = [];
+
+            for (const [protectionName, signatures] of Object.entries(protectionSignatures)) {
+                const evidence = [];
+
+                // 检查特定路径的SO文件
+                if (signatures.sopath) {
+                    for (const path of signatures.sopath) {
+                        if (fileList.includes(path)) {
+                            evidence.push(`特定路径SO文件: ${path}`);
+                        }
+                    }
+                }
+
+                // 检查SO文件名
+                if (signatures.soname) {
+                    for (const soname of signatures.soname) {
+                        const found = fileList.find(file => 
+                            file.includes(soname) && file.endsWith('.so')
+                        );
+                        if (found) {
+                            evidence.push(`SO文件: ${found}`);
+                        }
+                    }
+                }
+
+                // 检查其他特征文件
+                if (signatures.other) {
+                    for (const otherFile of signatures.other) {
+                        if (fileList.includes(otherFile)) {
+                            evidence.push(`特征文件: ${otherFile}`);
+                        }
+                    }
+                }
+
+                // 检查正则表达式匹配（使用预编译的正则表达式）
+                if (compiledRegexes[protectionName]) {
+                    for (const regex of compiledRegexes[protectionName]) {
+                        const matches = fileList.filter(file => regex.test(file));
+                        if (matches.length > 0) {
+                            evidence.push(`正则匹配: ${matches.join(', ')}`);
+                        }
+                    }
+                }
+
+                if (evidence.length > 0) {
+                    detected.push({
+                        name: protectionName,
+                        evidence: evidence
+                    });
+                }
+            }
+
+            return detected;
+        }
+
+        function showProgress(show) {
+            document.getElementById('progressBar').style.display = show ? 'block' : 'none';
+            document.getElementById('statusText').style.display = show ? 'block' : 'none';
+            
+            if (show) {
+                document.querySelector('.upload-section').classList.add('analyzing');
+            } else {
+                document.querySelector('.upload-section').classList.remove('analyzing');
+            }
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressFill').style.width = percent + '%';
+        }
+
+        function updateStatus(text) {
+            document.getElementById('statusText').textContent = text;
+        }
+
+        function displayResults(detectedProtections, fileList, packageInfo) {
+            const resultsSection = document.getElementById('resultsSection');
+            const statsGrid = document.getElementById('statsGrid');
+            const detectionResults = document.getElementById('detectionResults');
+
+            // 保存检测结果供导出使用
+            window.lastDetectionResults = detectedProtections;
+            window.lastFileList = fileList;
+            window.lastPackageInfo = packageInfo;
+
+            // 显示统计信息
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">加固种类</div>
+                    <div class="stat-number">${detectedProtections.length}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">文件总数</div>
+                    <div class="stat-number">${fileList.length}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">SO文件数量</div>
+                    <div class="stat-number">${fileList.filter(f => f.endsWith('.so')).length}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">文件大小(MB)</div>
+                    <div class="stat-number">${Math.round(currentFile.size / 1024 / 1024 * 100) / 100}</div>
+                </div>
+                <div class="stat-card package-name-card">
+                    <div class="stat-label">包名</div>
+                    <div class="stat-number">${packageInfo.packageName}</div>
+                </div>
+                <div class="stat-card version-card">
+                    <div class="stat-label">版本号</div>
+                    <div class="stat-number">${packageInfo.version}</div>
+                </div>
+                <div class="stat-card app-name-card">
+                    <div class="stat-label">应用名称</div>
+                    <div class="stat-number">${packageInfo.appName || '未知应用'}</div>
+                </div>
+            `;
+
+            // 先添加应用详细信息
+            let appInfoHTML = '';
+            if (packageInfo.activities && packageInfo.activities.length > 0) {
+                appInfoHTML = `
+                    <div class="result-card info">
+                        <div class="result-title">📱 应用组件信息</div>
+                        <div class="info-section">
+                            <h4>Activities (${packageInfo.activities.length}个)</h4>
+                            <div class="info-list" id="activitiesList">
+                                <div class="activities-header">
+                                    <div class="activity-label">Label</div>
+                                    <div class="activity-name">Activity Name</div>
+                                </div>
+                                ${packageInfo.activities.slice(0, 10).map(activity => {
+                                    let label = '未知';
+                                    let activityName = '未知';
+                                    
+                                    if (typeof activity === 'string') {
+                                        activityName = activity;
+                                    } else if (activity && typeof activity === 'object') {
+                                        label = activity.label || '未知';
+                                        activityName = activity.name || activity.className || '未知';
+                                    }
+                                    
+                                    return `
+                                        <div class="activity-row">
+                                            <div class="activity-label">${label}</div>
+                                            <div class="activity-name">${activityName}</div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                                ${packageInfo.activities.length > 10 ? `<div class="info-item more" onclick="loadMoreActivities()">... 点击加载更多 (还有${packageInfo.activities.length - 10}个)</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 显示检测结果
+            if (detectedProtections.length === 0) {
+                detectionResults.innerHTML = appInfoHTML + `
+                    <div class="result-card clean">
+                        <div class="result-title">✅ 未检测到加固</div>
+                        <p>该APK文件未发现已知的加固保护特征，可能为原生应用或使用了未知的加固方案。</p>
+                    </div>
+                `;
+            } else {
+                detectionResults.innerHTML = appInfoHTML + `
+                    <div class="result-card detected">
+                        <div class="result-title">🛡️ 检测到 ${detectedProtections.length} 种加固方案</div>
+                        <p>该APK文件已被加固保护，检测到以下加固特征：</p>
+                    </div>
+                ` + detectedProtections.map(protection => `
+                    <div class="protection-item">
+                        <div class="protection-header">
+                            <div class="protection-name">${protection.name}</div>
+                            <div class="protection-count">${protection.evidence.length} 个特征</div>
+                        </div>
+                        <div class="evidence-list">
+                            ${protection.evidence.map(evidence => `
+                                <div class="evidence-item">
+                                    <span class="evidence-icon">🔍</span>
+                                    <span class="evidence-text">${evidence}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+
+            resultsSection.style.display = 'block';
+            showClearButton();
+            updateUploadSectionAfterAnalysis();
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+
+        // 文件信息显示
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 添加更多分析功能
+        function analyzeAPKStructure(fileList) {
+            const structure = {
+                hasNativeLibs: fileList.some(f => f.startsWith('lib/') && f.endsWith('.so')),
+                hasAssets: fileList.some(f => f.startsWith('assets/')),
+                hasResources: fileList.some(f => f.startsWith('res/')),
+                hasDexFiles: fileList.filter(f => f.endsWith('.dex')).length,
+                architectures: []
+            };
+
+            // 检测支持的CPU架构
+            const archDirs = fileList.filter(f => f.startsWith('lib/')).map(f => f.split('/')[1]);
+            structure.architectures = [...new Set(archDirs)];
+
+            return structure;
+        }
+
+        // 键盘快捷键支持
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'o') {
+                e.preventDefault();
+                document.getElementById('fileInput').click();
+            }
+        });
+
+        // 粘贴上传功能
+        document.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const items = e.clipboardData.items;
+            
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                if (item.kind === 'file') {
+                    const file = item.getAsFile();
+                    if (file && file.name.toLowerCase().endsWith('.apk')) {
+                        handleFile(file);
+                        break; // 只处理第一个APK文件
+                    }
+                }
+            }
+        });
+
+        // 性能优化：预编译正则表达式
+        const compiledRegexes = {};
+        for (const [protectionName, signatures] of Object.entries(protectionSignatures)) {
+            if (signatures.soregex) {
+                compiledRegexes[protectionName] = signatures.soregex.map(regexStr => {
+                    try {
+                        return new RegExp(regexStr);
+                    } catch (e) {
+                        console.warn(`正则表达式编译失败: ${regexStr}`);
+                        return null;
+                    }
+                }).filter(regex => regex !== null);
+            }
+        }
+
+        // 添加重置功能
+        function resetAnalysis() {
+            console.log('resetAnalysis 被调用');
+            hideError();
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('clearBtn').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            currentFile = null;
+            window.lastDetectionResults = null;
+            window.lastFileList = null;
+            
+            // 恢复原始上传区域
+            restoreUploadSection();
+        }
+
+        // 恢复原始上传区域
+        function restoreUploadSection() {
+            const uploadIcon = document.querySelector('.upload-icon');
+            const uploadText = document.querySelector('.upload-text');
+            
+            // 显示SVG图标
+            uploadIcon.style.display = 'block';
+            
+            // 恢复原始文本
+            uploadText.innerHTML = `
+                将APK文件拖到此处，或<span class="upload-clickable">点击上传</span>
+            `;
+        }
+
+        // 彩蛋功能变量
+        let hoverTimer = null;
+        let hoverStartTime = null;
+
+        // 添加清除按钮
+        function addClearButton() {
+            // 检查是否已经存在按钮，避免重复创建
+            if (document.getElementById('clearBtn')) {
+                return;
+            }
+            
+            const clearBtn = document.createElement('button');
+            clearBtn.className = 'btn';
+            clearBtn.textContent = '🔄 重新分析';
+            clearBtn.onclick = resetAnalysis;
+            clearBtn.style.background = 'linear-gradient(135deg, #e53e3e, #c53030)';
+            clearBtn.style.display = 'none';
+            clearBtn.style.margin = '20px auto';
+            clearBtn.style.width = '200px';
+            clearBtn.style.transition = 'all 0.3s ease';
+            clearBtn.id = 'clearBtn';
+            
+            // 彩蛋功能：鼠标悬停5秒自动触发（静默）
+            clearBtn.addEventListener('mouseenter', function() {
+                hoverStartTime = Date.now();
+                this.style.transform = 'scale(1.05)';
+                this.style.boxShadow = '0 10px 25px rgba(229, 62, 62, 0.4)';
+                
+                // 静默倒计时，不显示任何提示
+                hoverTimer = setTimeout(() => {
+                    console.log('彩蛋触发！');
+                    this.style.background = 'linear-gradient(135deg, #ff6b6b, #ff5252)';
+                    this.style.animation = 'pulse 0.5s ease-in-out 3';
+                    this.textContent = '🎉 彩蛋触发！自动重新分析...';
+                    
+                    setTimeout(() => {
+                        resetAnalysis();
+                    }, 1500);
+                }, 5000);
+            });
+            
+            clearBtn.addEventListener('mouseleave', function() {
+                if (hoverTimer) {
+                    clearTimeout(hoverTimer);
+                    hoverTimer = null;
+                }
+                this.style.transform = 'scale(1)';
+                this.style.boxShadow = '0 10px 20px rgba(102, 126, 234, 0.3)';
+                this.style.background = 'linear-gradient(135deg, #e53e3e, #c53030)';
+                this.textContent = '🔄 重新分析';
+            });
+            
+            document.querySelector('.main-content').appendChild(clearBtn);
+        }
+
+        // 显示清除按钮
+        function showClearButton() {
+            document.getElementById('clearBtn').style.display = 'block';
+        }
+
+        // 加载更多Activities
+        function loadMoreActivities() {
+            const activitiesList = document.getElementById('activitiesList');
+            if (activitiesList && window.lastPackageInfo && window.lastPackageInfo.activities) {
+                const allActivities = window.lastPackageInfo.activities;
+                activitiesList.innerHTML = `
+                    <div class="activities-header">
+                        <div class="activity-label">Label</div>
+                        <div class="activity-name">Activity Name</div>
+                    </div>
+                ` + allActivities.map(activity => {
+                    let label = '未知';
+                    let activityName = '未知';
+                    
+                    if (typeof activity === 'string') {
+                        activityName = activity;
+                    } else if (activity && typeof activity === 'object') {
+                        label = activity.label || '未知';
+                        activityName = activity.name || activity.className || '未知';
+                    }
+                    
+                    return `
+                        <div class="activity-row">
+                            <div class="activity-label">${label}</div>
+                            <div class="activity-name">${activityName}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+
+        // 分析完毕后更新上传区域
+        function updateUploadSectionAfterAnalysis() {
+            const uploadSection = document.querySelector('.upload-section');
+            const uploadIcon = uploadSection.querySelector('.upload-icon');
+            const uploadText = uploadSection.querySelector('.upload-text');
+            
+            // 隐藏SVG图标
+            uploadIcon.style.display = 'none';
+            
+            // 替换为图片
+            uploadText.innerHTML = `
+                <img src="https://cdn.midjourney.com/2dfd9ee4-d288-4512-a53e-39b3e191b792/0_1.png" 
+                     alt="分析完成" 
+                     style="max-width: 200px; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            `;
+        }
+
+
+        // 忽略扩展错误
+        window.addEventListener('error', function(e) {
+            if (e.message && e.message.includes('runtime.lastError')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // 初始化提示
+        console.log('APK加固检测工具已加载完成！');
+        console.log('支持检测的加固方案:', Object.keys(protectionSignatures).length, '种');
+        console.log('使用Ctrl+O快速选择文件');
+        
+        // 添加清除按钮
+        addClearButton();
+    </script>
+</body>
+</html>
