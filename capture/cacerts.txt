@@ -1,0 +1,10 @@
+通过openssl将ca证书制作成pem证书
+openssl x509 -inform der -in your_certificate.cer -out your_certificate.pem
+openssl x509 -subject_hash_old -in your_certificate.pem
+
+系统证书目录
+/system/etc/security/cacerts/
+
+
+注意adb上传时会出现后缀0消失也就是会变成类似20f5a03e.，需要重新命mv 20f5a03e. 20f5a03e.0
+adb push 20f5a03e.0 /system/etc/security/cacerts/
