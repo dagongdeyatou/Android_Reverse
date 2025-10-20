@@ -15,14 +15,14 @@ adb push 20f5a03e.0 /system/etc/security/cacerts/
 
 多个网卡时charles选择虚拟网卡不能抓包android手机时的解决方案
 
-设置网络优先级
+一、设置网络优先级
 1、管理员权限打开终端
 Get-NetIPInterface | Format-Table -AutoSize 查看现在的网络优先级
 2、通过设置网卡跃点数来设置优先级
 Set-NetIPInterface -InterfaceIndex "14" -InterfaceMetric "1"
 3、通过启动自动跃点来恢复优先级
 Set-NetIPInterface -InterfaceIndex "14" -AutomaticMetric enabled
-
+二、直接禁用网卡
 禁用网卡
 Disable-NetAdapter -Name "vEthernet (Default Switch)" -Confirm:$false
 启用网卡
